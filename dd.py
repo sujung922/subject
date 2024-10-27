@@ -26,7 +26,7 @@ def create_one_hot_df(subject, unique_tags):
         one_hot_data.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit']) + tuple(vector))
     return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit'] + unique_tags)
 
-# 유사한 수업 찾기 함수 (부분 검색 추가)
+# 유사한 수업 찾기 함수
 def find_similar_subject(subject_name, one_hot_df):
     sub_vector = None
     similar_scores = []
