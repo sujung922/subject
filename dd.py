@@ -44,22 +44,7 @@ def find_similar_subject(subject_name, one_hot_df):
             vector = row[8:].values.reshape(1, -1)
             similarity = cosine_similarity(sub_vector, vector)[0][0]
             if similarity >= 0.7:
-                similar_scores.append((row['Code'], row['Title1'],row['Title'],row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
-
-    similar_scores.sort(key=lambda x: x[8], reverse=True)
-
-    seen_names = set()
-    unique_similar_scores = []
-    for code, title1, title, name, des, pro, time, course, credit, score in similar_scores:
-        if name not in seen_names:
-            unique_similar_scores.append((code, title1, title, name, des, pro, time, course, credit, score))
-            seen_names.add(name)
-        if len(unique_similar_scores) == 3:
-            break
-    return unique_similar_scores
-
-# Streamlit 애플리케이션 시작
-st.title("에듀매치가 수업을 추천해드릴게요 !")
+                similar_scores.append((row['Code'], row['Title1'],row['Title'],row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], 보 !")
 st.caption('자신이 수강했던 수업 중 가장 재미있게 들었던 수업을 입력해주세요. 에듀매치가 가장 비슷한 유형의 수업을 추천해드릴게요🤓')
 
 # 데이터 로드
