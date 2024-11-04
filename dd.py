@@ -13,13 +13,13 @@ def get_unique_tags(subject):
     
     # 'Tag' 열에서 태그 추출
     for tags in subject['Tag']:
-        if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
+        if isinstance(tags, str):  # 문자열인지 확인
             for tag in tags.split(','):
                 all_tags.append(tag.strip())
     
     # 'Tag2' 열에서 태그 추출
     for tags in subject['Tag2']:
-        if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
+        if isinstance(tags, str):  # 문자열인지 확인
             for tag in tags.split(','):
                 all_tags.append(tag.strip())
     
@@ -34,24 +34,27 @@ def create_one_hot_df(subject, unique_tags):
     
     for index, row in subject.iterrows():
         tags = row['Tag'].split(',') if isinstance(row['Tag'], str) else []
-        tags = [tag.strip() for tag in tags if tag.strip()]
+        tags = [tag.strip() for tag in tags]
 
         tags2 = row['Tag2'].split(',') if isinstance(row['Tag2'], str) else []
-        tags2 = [tag.strip() for tag in tags2 if tag.strip()]
+        tags2 = [tag.strip() for tag in tags2]
 
         vector = [1 if t in tags else 0 for t in unique_tags] + [1 if t in tags2 else 0 for t in unique_tags]
         
         one_hot_data.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit']) + tuple(vector))
     
-    return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit'] + unique_tags + unique_tags)
+    return pd.DataFrame(one_hot_data, columns=['Code', 'Title1', 'Title', 'Name', 'Des', 'Pro', 'Time', 'Course', 'Credit'] + unique_tags + unique_tags)
 
 # 유사한 수업 찾기 함수 (부분 검색 추가)
 def find_similar_subject(subject_name, one_hot_df):
     sub_vector = None
     similar_scores = []
 
+    # 공백 제거 후 비교
+    subject_name_cleaned = subject_name.replace(" ", "").lower()
+
     for index, row in one_hot_df.iterrows():
-        if subject_name.lower() in row['Name'].lower():  
+        if subject_name_cleaned in row['Name'].replace(" ", "").lower():  
             sub_vector = row[8:].values.reshape(1, -1)
             break
 
@@ -59,7 +62,7 @@ def find_similar_subject(subject_name, one_hot_df):
         return None
 
     for index, row in one_hot_df.iterrows():
-        if subject_name.lower() not in row['Name'].lower(): 
+        if subject_name_cleaned not in row['Name'].replace(" ", "").lower(): 
             vector = row[8:].values.reshape(1, -1)
             similarity = cosine_similarity(sub_vector, vector)[0][0]
             if similarity >= 0.9:
@@ -95,6 +98,7 @@ sub_name = st.text_input(f"{course_type} 수업명을 입력하세요:")
 # 추천 버튼
 if st.button("추천받기"):
     if sub_name:
+        # 선택한 전공에 따라 필터링
         filtered_df = one_hot_df[one_hot_df['Title1'] == course_type]
         similar_subject = find_similar_subject(sub_name, filtered_df)
 
