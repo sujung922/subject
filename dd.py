@@ -10,21 +10,40 @@ def load_data():
 # 모든 태그 중복 제거 후 추출
 def get_unique_tags(subject):
     all_tags = []
+    
+    # 'Tag' 열에서 태그 추출
     for tags in subject['Tag']:
-        if tags:
+        if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
             for tag in tags.split(','):
                 all_tags.append(tag.strip())
-    return list(dict.fromkeys(all_tags))
+    
+    # 'Tag2' 열에서 태그 추출
+    for tags in subject['Tag2']:
+        if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
+            for tag in tags.split(','):
+                all_tags.append(tag.strip())
+    
+    # 중복 제거
+    unique_tags = list(dict.fromkeys(all_tags))
+    
+    return unique_tags
 
 # 원-핫 인코딩을 위한 데이터 리스트 초기화
 def create_one_hot_df(subject, unique_tags):
     one_hot_data = []
+    
     for index, row in subject.iterrows():
-        tags = row['Tag'].split(',')
-        tags = [tag.strip() for tag in tags]
-        vector = [1 if t in tags else 0 for t in unique_tags]
+        tags = row['Tag'].split(',') if isinstance(row['Tag'], str) else []
+        tags = [tag.strip() for tag in tags if tag.strip()]
+
+        tags2 = row['Tag2'].split(',') if isinstance(row['Tag2'], str) else []
+        tags2 = [tag.strip() for tag in tags2 if tag.strip()]
+
+        vector = [1 if t in tags else 0 for t in unique_tags] + [1 if t in tags2 else 0 for t in unique_tags]
+        
         one_hot_data.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit']) + tuple(vector))
-    return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit'] + unique_tags)
+    
+    return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit'] + unique_tags + unique_tags)
 
 # 유사한 수업 찾기 함수 (부분 검색 추가)
 def find_similar_subject(subject_name, one_hot_df):
@@ -43,8 +62,8 @@ def find_similar_subject(subject_name, one_hot_df):
         if subject_name.lower() not in row['Name'].lower(): 
             vector = row[8:].values.reshape(1, -1)
             similarity = cosine_similarity(sub_vector, vector)[0][0]
-            if similarity >= 0.7:
-                similar_scores.append((row['Code'], row['Title1'],row['Title'],row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
+            if similarity >= 0.9:
+                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
 
     similar_scores.sort(key=lambda x: x[8], reverse=True)
 
@@ -95,11 +114,9 @@ if st.button("추천받기"):
                         st.markdown(f"**학점:** {course}")
                         st.markdown(f"**평점:** {credit}")
                         st.markdown(f"**유사도:** {score*100:.1f}%")
-                        # 유사도 시각화 추가
                     st.markdown(f"**수업설명:** {des}\n")
                     st.write('='*80)
         else:
             st.write(f"{sub_name}와 비슷한 {course_type} 수업을 찾을 수 없어요🥲.")
     else:
         st.write("수업 이름을 입력해 주세요.")
-
