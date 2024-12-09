@@ -11,28 +11,38 @@ def load_data():
 def get_unique_tags(subject):
     all_tags = []
     
-    # 'Tag' 열에서 태그 추출
+    # Tag 열에서 태그 추출
     for tags in subject['Tag']:
         if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
             for tag in tags.split(','):
                 all_tags.append(tag.strip())
     
-    # 'Tag2' 열에서 태그 추출
+    # Tag2 열에서 태그 추출
     for tags in subject['Tag2']:
         if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
             for tag in tags.split(','):
                 all_tags.append(tag.strip())
     
-    # 중복 제거
+    # 중복제거
     unique_tags = list(dict.fromkeys(all_tags))
     
     return unique_tags
 
-# 원-핫 인코딩을 위한 데이터 리스트 초기화
+# 원-핫 인코딩
 def create_one_hot_df(subject, unique_tags):
     one_hot_data = []
     
+    # 열 이름 확인
+    if 'Code' not in subject.columns:
+        print('error')
+        return None  
+
     for index, row in subject.iterrows():
+        if pd.notna(row['Code']):
+            code = str(int(row['Code'])).zfill(7)  
+        else:
+            code = '0000000' 
+        
         tags = row['Tag'].split(',') if isinstance(row['Tag'], str) else []
         tags = [tag.strip() for tag in tags if tag.strip()]
 
@@ -41,7 +51,7 @@ def create_one_hot_df(subject, unique_tags):
 
         vector = [1 if t in tags else 0 for t in unique_tags] + [1 if t in tags2 else 0 for t in unique_tags]
         
-        one_hot_data.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit']) + tuple(vector))
+        one_hot_data.append((code, row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit']) + tuple(vector))
     
     return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit'] + unique_tags + unique_tags)
 
@@ -51,7 +61,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df):
     sub_vector = None
     similar_scores = []
 
-    # 입력한 교수님의 수업을 찾아서 벡터를 생성
+    # 벡터 생성
     for index, row in one_hot_df.iterrows():
         if subject_name.lower() in row['Name'].lower() and professor_name.lower() in row['Pro'].lower():  
             sub_vector = row[8:].values.reshape(1, -1)
@@ -65,7 +75,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df):
         if subject_name.lower() not in row['Name'].lower(): 
             vector = row[8:].values.reshape(1, -1)
             similarity = cosine_similarity(sub_vector, vector)[0][0]
-            if similarity >= 0.9:
+            if similarity >= 0.9: #유사도 퍼센트 조정
                 similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
 
     similar_scores.sort(key=lambda x: x[8], reverse=True)
@@ -81,13 +91,13 @@ def find_similar_subject(subject_name, professor_name, one_hot_df):
 
     return unique_similar_scores
 
-# 로그인 기능 추가
+# 로그인 기능 
 def login(username, password):
     if username == "admin" and password == "0000":
         return True
     return False
 
-# Streamlit 애플리케이션 시작
+# Streamlit
 st.title("에듀매치가 수업을 추천해드릴게요!")
 st.caption('자신이 수강했던 수업 중 가장 재미있게 들었던 수업을 입력해주세요. 에듀매치가 가장 비슷한 유형의 수업을 추천해드릴게요🤓')
 
@@ -132,13 +142,13 @@ elif st.session_state.page == 'recommend':
 
     course_type = st.selectbox("추천받고 싶은 수업 종류를 선택하세요:", ["교양", "전공"])
 
-    # 사용자 입력 - 수업 이름
-    sub_name = st.text_input(f"{course_type} 수업명을 입력하세요:")
+    # 수업 이름 입력
+    sub_name = st.text_input(f"이전에 수강했던 {course_type} 수업명을 입력하세요:")
 
-    # 사용자 입력 - 교수님 이름
+    # 교수님 이름 입력
     professor_name = st.text_input("교수님 이름을 입력하세요:")
 
-    # 추천 버튼
+    # 추천
     if st.button("추천받기"):
         if sub_name:
             filtered_df = one_hot_df[one_hot_df['Title1'] == course_type]
