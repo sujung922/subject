@@ -75,7 +75,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df):
         if subject_name.lower() not in row['Name'].lower(): 
             vector = row[8:].values.reshape(1, -1)
             similarity = cosine_similarity(sub_vector, vector)[0][0]
-            if similarity >= 0.9: #유사도 퍼센트 조정
+            if similarity >= 0.7: #유사도 퍼센트 조정
                 similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
 
     similar_scores.sort(key=lambda x: x[8], reverse=True)
