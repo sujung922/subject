@@ -98,7 +98,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
                 if similarity >= 0.9:  # 전공 유사도 기준
                     similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
             else:
-                if similarity >= 0.9:  # 교양 유사도 기준을 높임
+                if similarity >= 0.8:  # 교양 유사도 기준을 높임
                     similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
 
     similar_scores.sort(key=lambda x: x[8], reverse=False)
