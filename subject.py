@@ -95,7 +95,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
             
             # 전공과 교양에 따라 유사도 기준 설정
             if is_major:
-                if similarity >= 0.9:  # 전공 유사도 기준
+                if similarity >= 0.8:  # 전공 유사도 기준
                     similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
             else:
                 if similarity >= 0.8:  # 교양 유사도 기준을 높임
@@ -168,7 +168,9 @@ elif st.session_state.page == 'recommend':
 
     # 추천
     if st.button("추천받기"):
-        if sub_name:
+        if not professor_name:  
+            st.warning("교수님 이름을 입력해 주세요.")
+        elif sub_name:
             filtered_df = one_hot_df[one_hot_df['Title1'] == course_type]
             is_major = (course_type == "전공")  # 전공인지 교양인지에 따라 유사도 기준 설정
 
