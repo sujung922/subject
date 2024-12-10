@@ -2,6 +2,12 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 import streamlit as st
 
+# 로그인 기능 
+def login(username, password):
+    if username == "admin" and password == "0000":
+        return True
+    return False
+    
 # 데이터 로드 함수
 @st.cache_data
 def load_data():
@@ -9,22 +15,21 @@ def load_data():
 
 # 모든 태그 중복 제거 후 추출
 def get_unique_tags(subject):
-    all_tags = []
+    all_tags = set() 
     
     # Tag 열에서 태그 추출
     for tags in subject['Tag']:
         if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
             for tag in tags.split(','):
-                all_tags.append(tag.strip())
+                all_tags.add(tag.strip())
     
     # Tag2 열에서 태그 추출
     for tags in subject['Tag2']:
         if isinstance(tags, str) and tags.strip():  # 문자열인지 확인하고 빈 문자열이 아닐 때
             for tag in tags.split(','):
-                all_tags.append(tag.strip())
+                all_tags.add(tag.strip())
     
-    # 중복제거
-    unique_tags = list(dict.fromkeys(all_tags))
+    unique_tags = list(all_tags)  
     
     return unique_tags
 
@@ -32,32 +37,44 @@ def get_unique_tags(subject):
 def create_one_hot_df(subject, unique_tags):
     one_hot_data = []
     
-    # 열 이름 확인
     if 'Code' not in subject.columns:
         print('error')
         return None  
 
     for index, row in subject.iterrows():
-        if pd.notna(row['Code']):
-            code = str(int(row['Code'])).zfill(7)  
-        else:
-            code = '0000000' 
+        code = str(int(row['Code'])).zfill(7) if pd.notna(row['Code']) else '0000000' 
         
-        tags = row['Tag'].split(',') if isinstance(row['Tag'], str) else []
-        tags = [tag.strip() for tag in tags if tag.strip()]
+        # Tag에서 태그 추출
+        tags = set(row['Tag'].split(',')) if isinstance(row['Tag'], str) else set()
+        tags = {tag.strip() for tag in tags if tag.strip()}
 
-        tags2 = row['Tag2'].split(',') if isinstance(row['Tag2'], str) else []
-        tags2 = [tag.strip() for tag in tags2 if tag.strip()]
+        # Tag2에서 태그 추출
+        tags2 = set(row['Tag2'].split(',')) if isinstance(row['Tag2'], str) else set()
+        tags2 = {tag.strip() for tag in tags2 if tag.strip()}
 
-        vector = [1 if t in tags else 0 for t in unique_tags] + [1 if t in tags2 else 0 for t in unique_tags]
+        # 겹치는 태그 제거
+        unique_tags_set = tags.union(tags2)  # Tag과 Tag2의 태그를 합친 집합
+        overlapping_tags = tags.intersection(tags2)  # 겹치는 태그
+        
+        # 겹치는 태그 제거
+        for tag in overlapping_tags:
+            unique_tags_set.discard(tag)  # 겹치는 태그를 제거
+        
+        # 원-핫 인코딩: 겹치는 태그를 제외하고 설정
+        vector = [1 if t in tags else 0 for t in unique_tags] + [2 if t in tags2 else 0 for t in unique_tags]
+        
+        # 겹치는 태그에 대해 가중치 설정
+        for tag in overlapping_tags:
+            if tag in unique_tags:
+                index = unique_tags.index(tag)
+                vector[index] = 0 
         
         one_hot_data.append((code, row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit']) + tuple(vector))
     
     return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit'] + unique_tags + unique_tags)
 
-
 # 유사한 수업 찾기 함수 (입력한 교수님의 수업을 기준으로 추천)
-def find_similar_subject(subject_name, professor_name, one_hot_df):
+def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True):
     sub_vector = None
     similar_scores = []
 
@@ -75,10 +92,16 @@ def find_similar_subject(subject_name, professor_name, one_hot_df):
         if subject_name.lower() not in row['Name'].lower(): 
             vector = row[8:].values.reshape(1, -1)
             similarity = cosine_similarity(sub_vector, vector)[0][0]
-            if similarity >= 0.7: #유사도 퍼센트 조정
-                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
+            
+            # 전공과 교양에 따라 유사도 기준 설정
+            if is_major:
+                if similarity >= 0.9:  # 전공 유사도 기준
+                    similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
+            else:
+                if similarity >= 0.9:  # 교양 유사도 기준을 높임
+                    similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
 
-    similar_scores.sort(key=lambda x: x[8], reverse=True)
+    similar_scores.sort(key=lambda x: x[8], reverse=False)
 
     seen_names = set()
     unique_similar_scores = []
@@ -86,16 +109,11 @@ def find_similar_subject(subject_name, professor_name, one_hot_df):
         if name not in seen_names:  # 교수명과 일치하는 수업 제외
             unique_similar_scores.append((code, title1, title, name, des, pro, time, course, credit, score))
             seen_names.add(name)
-        if len(unique_similar_scores) == 3:
+        if len(unique_similar_scores) >= 3:  
             break
 
     return unique_similar_scores
 
-# 로그인 기능 
-def login(username, password):
-    if username == "admin" and password == "0000":
-        return True
-    return False
 
 # Streamlit
 st.title("에듀매치가 수업을 추천해드릴게요!")
@@ -152,7 +170,9 @@ elif st.session_state.page == 'recommend':
     if st.button("추천받기"):
         if sub_name:
             filtered_df = one_hot_df[one_hot_df['Title1'] == course_type]
-            similar_subject = find_similar_subject(sub_name, professor_name, filtered_df)
+            is_major = (course_type == "전공")  # 전공인지 교양인지에 따라 유사도 기준 설정
+
+            similar_subject = find_similar_subject(sub_name, professor_name, filtered_df, is_major)
 
             if similar_subject:
                 st.write(f"**{sub_name}와 비슷한 {course_type} 수업**:")
@@ -169,9 +189,9 @@ elif st.session_state.page == 'recommend':
                             st.markdown(f"**요일:** {time}")
                             st.markdown(f"**학점:** {course}")
                             st.markdown(f"**평점:** {credit}")
-                            st.markdown(f"**유사도:** {score*100:.1f}%")
+                            st.markdown(f"**유사도:** {score * 100:.1f}%")
                         st.markdown(f"**수업설명:** {des}\n")
-                        st.write('='*80)
+                        st.write('=' * 80)
             else:
                 st.write(f"{sub_name}와 비슷한 {course_type} 수업을 찾을 수 없어요🥲.")
         else:
