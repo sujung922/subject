@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
 import streamlit as st
 
 # 로그인 기능 
@@ -7,7 +8,7 @@ def login(username, password):
     if username == "admin" and password == "0000":
         return True
     return False
-    
+
 # 데이터 로드 함수
 @st.cache_data
 def load_data():
@@ -54,66 +55,69 @@ def create_one_hot_df(subject, unique_tags):
 
         # 겹치는 태그 제거
         unique_tags_set = tags.union(tags2)  # Tag과 Tag2의 태그를 합친 집합
-        overlapping_tags = tags.intersection(tags2)  # 겹치는 태그
-        
-        # 겹치는 태그 제거
-        for tag in overlapping_tags:
-            unique_tags_set.discard(tag)  # 겹치는 태그를 제거
-        
-        # 원-핫 인코딩: 겹치는 태그를 제외하고 설정
-        vector = [1 if t in tags else 0 for t in unique_tags] + [2 if t in tags2 else 0 for t in unique_tags]
-        
-        # 겹치는 태그에 대해 가중치 설정
-        for tag in overlapping_tags:
-            if tag in unique_tags:
-                index = unique_tags.index(tag)
-                vector[index] = 0 
-        
-        one_hot_data.append((code, row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit']) + tuple(vector))
-    
-    return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit'] + unique_tags + unique_tags)
 
-# 유사한 수업 찾기 함수 (입력한 교수님의 수업을 기준으로 추천)
+        # 원-핫 인코딩
+        vector = [1 if t in unique_tags_set else 0 for t in unique_tags]
+        one_hot_data.append((code, row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], row['Tag'], row['Tag2']) + tuple(vector))
+    
+    return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit','Tag','Tag2'] + unique_tags)
+
+# 태그 유사도 계산 함수
+def calculate_tag_similarity(tag1, tag2):
+    """Calculate cosine similarity between two tag strings."""
+    vectorizer = CountVectorizer()
+    if not tag1 or not tag2:  # 태그가 비어있는 경우
+        return 0.0
+    vectors = vectorizer.fit_transform([tag1, tag2])
+    return cosine_similarity(vectors)[0][1]
+
+# 유사한 수업 찾기 함수
 def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True):
     sub_vector = None
+    input_tag = ""
     similar_scores = []
 
-    # 벡터 생성
+    # 입력된 수업명과 교수로 벡터 찾기
     for index, row in one_hot_df.iterrows():
-        if subject_name.lower() in row['Name'].lower() and professor_name.lower() in row['Pro'].lower():  
-            sub_vector = row[8:].values.reshape(1, -1)
+        if subject_name.lower() in row['Name'].lower() and professor_name.lower() in row['Pro'].lower():
+            sub_vector = row[11:].values.reshape(1, -1)  # 원-핫 벡터
+            input_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
             break
 
     if sub_vector is None:
-        return None
+        return None  # 입력된 수업의 벡터를 찾지 못한 경우
 
-    # 유사 수업을 찾는 과정
+    # 입력된 교수의 수업 제외하고 유사도 계산
     for index, row in one_hot_df.iterrows():
-        if subject_name.lower() not in row['Name'].lower(): 
-            vector = row[8:].values.reshape(1, -1)
-            similarity = cosine_similarity(sub_vector, vector)[0][0]
-            
-            # 전공과 교양에 따라 유사도 기준 설정
-            if is_major:
-                if similarity >= 0.8:  # 전공 유사도 기준
-                    similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
-            else:
-                if similarity >= 0.8:  # 교양 유사도 기준을 높임
-                    similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], similarity))
+        if row['Pro'].lower() != professor_name.lower():
+            vector = row[11:].values.reshape(1, -1)
+            name_similarity = cosine_similarity(sub_vector, vector)[0][0]  # 원-핫 벡터 유사도
+            target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
+            tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
 
-    similar_scores.sort(key=lambda x: x[8], reverse=False)
+            # 최종 유사도: 가중치 조정
+            final_similarity = 0.3 * name_similarity + 0.7 * tag_similarity
 
+            # 전공/교양에 따라 필터링
+            if is_major and final_similarity >= 0.7:  # 전공 유사도 기준
+                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
+            elif not is_major and final_similarity >= 0.7:  # 교양 유사도 기준
+                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
+
+    # 유사도 기준으로 정렬
+    similar_scores.sort(key=lambda x: x[9], reverse=True)
+
+    # 중복 제거: 같은 수업명을 가진 데이터 하나만 반환
     seen_names = set()
     unique_similar_scores = []
     for code, title1, title, name, des, pro, time, course, credit, score in similar_scores:
-        if name not in seen_names:  # 교수명과 일치하는 수업 제외
+        if name not in seen_names:
             unique_similar_scores.append((code, title1, title, name, des, pro, time, course, credit, score))
             seen_names.add(name)
-        if len(unique_similar_scores) >= 3:  
+        if len(unique_similar_scores) >= 3:  # 최대 3개 추천
             break
 
     return unique_similar_scores
-
 
 # Streamlit
 st.title("에듀매치가 수업을 추천해드릴게요!")
@@ -168,7 +172,7 @@ elif st.session_state.page == 'recommend':
 
     # 추천
     if st.button("추천받기"):
-        if not professor_name:  
+        if not professor_name:  # 교수님 이름이 입력되지 않은 경우
             st.warning("교수님 이름을 입력해 주세요.")
         elif sub_name:
             filtered_df = one_hot_df[one_hot_df['Title1'] == course_type]
