@@ -95,7 +95,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
             target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
             tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
 
-            # 최종 유사도: 가중치 조정
+            # 최종 유사도: 가중치를 조정 (수업명 50%, 태그 50%)
             final_similarity = 0.3 * name_similarity + 0.7 * tag_similarity
 
             # 전공/교양에 따라 필터링
@@ -107,7 +107,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
     # 유사도 기준으로 정렬
     similar_scores.sort(key=lambda x: x[9], reverse=True)
 
-    # 중복 제거: 같은 수업명을 가진 데이터 하나만 반환
+    # 중복 제거: 같은 수업명을 가진 데이터 하나씩만 반환
     seen_names = set()
     unique_similar_scores = []
     for code, title1, title, name, des, pro, time, course, credit, score in similar_scores:
