@@ -120,7 +120,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
     return unique_similar_scores
 
 # Streamlit
-st.title("에듀매치가 수업을 추천해드릴게요!")
+st.header("에듀매치가 수업을 추천해드릴게요!")
 st.caption('자신이 수강했던 수업 중 가장 재미있게 들었던 수업을 입력해주세요. 에듀매치가 가장 비슷한 유형의 수업을 추천해드릴게요🤓')
 
 # 세션 상태 초기화
