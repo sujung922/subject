@@ -5,7 +5,7 @@ import streamlit as st
 
 # 로그인 기능 
 def login(username, password):
-    if username == "admin" and password == "0000":
+    if username == "20212390" and password == "0000":
         return True
     return False
 
@@ -42,97 +42,7 @@ def create_one_hot_df(subject, unique_tags):
         print('error')
         return None  
 
-    for index, row in subject.iterrows():
-        code = str(int(row['Code'])).zfill(7) if pd.notna(row['Code']) else '0000000' 
-        
-        # Tag에서 태그 추출
-        tags = set(row['Tag'].split(',')) if isinstance(row['Tag'], str) else set()
-        tags = {tag.strip() for tag in tags if tag.strip()}
-
-        # Tag2에서 태그 추출
-        tags2 = set(row['Tag2'].split(',')) if isinstance(row['Tag2'], str) else set()
-        tags2 = {tag.strip() for tag in tags2 if tag.strip()}
-
-        # 겹치는 태그 제거
-        unique_tags_set = tags.union(tags2)  # Tag과 Tag2의 태그를 합친 집합
-
-        # 원-핫 인코딩
-        vector = [1 if t in unique_tags_set else 0 for t in unique_tags]
-        one_hot_data.append((code, row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], row['Tag'], row['Tag2']) + tuple(vector))
-    
-    return pd.DataFrame(one_hot_data, columns=['Code','Title1','Title','Name','Des','Pro','Time','Course','Credit','Tag','Tag2'] + unique_tags)
-
-# 태그 유사도 계산 함수
-def calculate_tag_similarity(tag1, tag2):
-    """Calculate cosine similarity between two tag strings."""
-    vectorizer = CountVectorizer()
-    if not tag1 or not tag2:  # 태그가 비어있는 경우
-        return 0.0
-    vectors = vectorizer.fit_transform([tag1, tag2])
-    return cosine_similarity(vectors)[0][1]
-
-# 유사한 수업 찾기 함수
-def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True):
-    sub_vector = None
-    input_tag = ""
-    similar_scores = []
-
-    # 입력된 수업명과 교수로 벡터 찾기
-    for index, row in one_hot_df.iterrows():
-        if subject_name.lower() in row['Name'].lower() and professor_name.lower() in row['Pro'].lower():
-            sub_vector = row[11:].values.reshape(1, -1)  # 원-핫 벡터
-            input_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
-            break
-
-    if sub_vector is None:
-        return None  # 입력된 수업의 벡터를 찾지 못한 경우
-
-    # 입력된 교수의 수업 제외하고 유사도 계산
-    for index, row in one_hot_df.iterrows():
-        if row['Pro'].lower() != professor_name.lower():
-            vector = row[11:].values.reshape(1, -1)
-            name_similarity = cosine_similarity(sub_vector, vector)[0][0]  # 원-핫 벡터 유사도
-            target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
-            tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
-
-            # 최종 유사도: 가중치를 조정 (수업명 50%, 태그 50%)
-            final_similarity = 0.3 * name_similarity + 0.7 * tag_similarity
-
-            # 전공/교양에 따라 필터링
-            if is_major and final_similarity >= 0.7:  # 전공 유사도 기준
-                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
-            elif not is_major and final_similarity >= 0.7:  # 교양 유사도 기준
-                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
-
-    # 유사도 기준으로 정렬
-    similar_scores.sort(key=lambda x: x[9], reverse=True)
-
-    # 중복 제거: 같은 수업명을 가진 데이터 하나씩만 반환
-    seen_names = set()
-    unique_similar_scores = []
-    for code, title1, title, name, des, pro, time, course, credit, score in similar_scores:
-        if name not in seen_names:
-            unique_similar_scores.append((code, title1, title, name, des, pro, time, course, credit, score))
-            seen_names.add(name)
-        if len(unique_similar_scores) >= 3:  # 최대 3개 추천
-            break
-
-    return unique_similar_scores
-
-# Streamlit
-st.title("에듀매치가 수업을 추천해드릴게요!")
-st.caption('자신이 수강했던 수업 중 가장 재미있게 들었던 수업을 입력해주세요. 에듀매치가 가장 비슷한 유형의 수업을 추천해드릴게요🤓')
-
-# 세션 상태 초기화
-if 'page' not in st.session_state:
-    st.session_state.page = 'login'
-if 'credits' not in st.session_state:
-    st.session_state.credits = {'교양': 0, '전공': 0}
-
-# 로그인 페이지
-if st.session_state.page == 'login':
-    st.subheader("로그인")
-    username = st.text_input("사용자 이름:")
+    for index, ro번:")
     password = st.text_input("비밀번호:", type="password")
 
     if st.button("로그인"):
