@@ -184,7 +184,7 @@ elif st.session_state.page == 'recommend':
             similar_subject = find_similar_subject(sub_name, professor_name, filtered_df, is_major)
 
             if similar_subject:
-                st.write(f"**{sub_name}와 비슷한 {course_type} 수업**:")
+                st.write(f"**{professor_name}교수님의 {sub_name} 수업과 비슷한 {course_type} 수업**:")
                 for code, title1, title, name, des, pro, time, course, credit, score in similar_subject:
                     st.markdown(
                         f"""
