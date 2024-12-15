@@ -103,7 +103,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
         # 전공/교양에 따라 필터링
         if is_major and final_similarity >= 0.75:  # 전공 유사도 
             similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
-        elif not is_major and final_similarity >= 0.75:  # 교양 유사도
+        elif not is_major and final_similarity >= 0.7:  # 교양 유사도
             similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
 
     # 유사도 기준으로 정렬
