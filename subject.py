@@ -89,11 +89,10 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
 
     # 입력된 교수의 수업 제외하고 유사도 계산
     for index, row in one_hot_df.iterrows():
-        if row['Pro'].lower() != professor_name.lower():
-            vector = row[11:].values.reshape(1, -1)
-            name_similarity = cosine_similarity(sub_vector, vector)[0][0]  # 원-핫 벡터 유사도
-            target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
-            tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
+        vector = row[11:].values.reshape(1, -1)
+        name_similarity = cosine_similarity(sub_vector, vector)[0][0]  # 원-핫 벡터 유사도
+        target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
+        tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
 
             # 최종 유사도: 가중치를 조정
             final_similarity = 0.2 * name_similarity + 0.8 * tag_similarity
