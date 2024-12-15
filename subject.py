@@ -54,7 +54,7 @@ def create_one_hot_df(subject, unique_tags):
         tags2 = {tag.strip() for tag in tags2 if tag.strip()}
 
         # 겹치는 태그 제거
-        unique_tags_set = tags.union(tags2)  # Tag과 Tag2의 태그를 합친 집합
+        unique_tags_set = tags.union(tags2)
 
         # 원-핫 인코딩
         vector = [1 if t in unique_tags_set else 0 for t in unique_tags]
@@ -64,9 +64,8 @@ def create_one_hot_df(subject, unique_tags):
 
 # 태그 유사도 계산 함수
 def calculate_tag_similarity(tag1, tag2):
-    """Calculate cosine similarity between two tag strings."""
     vectorizer = CountVectorizer()
-    if not tag1 or not tag2:  # 태그가 비어있는 경우
+    if not tag1 or not tag2:  
         return 0.0
     vectors = vectorizer.fit_transform([tag1, tag2])
     return cosine_similarity(vectors)[0][1]
@@ -77,34 +76,34 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
     input_tag = ""
     similar_scores = []
 
-    subject_name = subject_name.replace(" ", "")  # 입력된 수업명에서 공백 제거
+    subject_name = subject_name.replace(" ", "")  
 
     # 입력된 수업명과 교수로 벡터 찾기
     for index, row in one_hot_df.iterrows():
         course_name = row['Name'].replace(" ", "")
         if subject_name in row['Name'] and professor_name in row['Pro']:
-            sub_vector = row[11:].values.reshape(1, -1)  # 원-핫 벡터
-            input_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
+            sub_vector = row[11:].values.reshape(1, -1)  
+            input_tag = f"{row['Tag']},{row['Tag2']}" 
             break
 
     if sub_vector is None:
-        return None  # 입력된 수업의 벡터를 찾지 못한 경우
+        return None  
 
     # 입력된 교수의 수업 제외하고 유사도 계산
     for index, row in one_hot_df.iterrows():
         if row['Pro'] != professor_name:
             vector = row[11:].values.reshape(1, -1)
             name_similarity = cosine_similarity(sub_vector, vector)[0][0]  # 원-핫 벡터 유사도
-            target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
-            tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
+            target_tag = f"{row['Tag']},{row['Tag2']}"  
+            tag_similarity = calculate_tag_similarity(input_tag, target_tag) 
 
         # 최종 유사도: 가중치를 조정
         final_similarity = 0.2 * name_similarity + 0.8 * tag_similarity
 
         # 전공/교양에 따라 필터링
-        if is_major and final_similarity >= 0.75:  # 전공 유사도 기준
+        if is_major and final_similarity >= 0.75:  # 전공 유사도 
             similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
-        elif not is_major and final_similarity >= 0.75:  # 교양 유사도 기준
+        elif not is_major and final_similarity >= 0.75:  # 교양 유사도
             similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
 
     # 유사도 기준으로 정렬
@@ -127,7 +126,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
 st.header("에듀매치가 수업을 추천해드릴게요!")
 st.caption('자신이 수강했던 수업 중 가장 재미있게 들었던 수업을 입력해주세요. 에듀매치가 가장 비슷한 유형의 수업을 추천해드릴게요🤓')
 
-# 세션 상태 초기화
+# 세션 초기화
 if 'page' not in st.session_state:
     st.session_state.page = 'login'
 if 'credits' not in st.session_state:
@@ -141,19 +140,19 @@ if st.session_state.page == 'login':
 
     if st.button("로그인"):
         if login(username, password):
-            st.session_state.page = 'credits'  # 로그인 성공 시 학점 입력 페이지로 이동
+            st.session_state.page = 'credits' 
             st.success("로그인 성공!")
         else:
             st.error("로그인 실패! 사용자 이름 또는 비밀번호를 확인하세요.")
 
-# 학점 입력 페이지
+# 이수 학점 입력 페이지
 elif st.session_state.page == 'credits':
     st.subheader("이수한 학점 입력")
     st.session_state.credits['교양'] = st.number_input("이수한 교양 학점:", min_value=0, value=st.session_state.credits['교양'])
     st.session_state.credits['전공'] = st.number_input("이수한 전공 학점:", min_value=0, value=st.session_state.credits['전공'])
 
     if st.button("학점 입력"):
-        st.session_state.page = 'recommend'  # 학점 입력 완료 시 수업 추천 페이지로 이동
+        st.session_state.page = 'recommend'  
 
 # 수업 추천 페이지
 elif st.session_state.page == 'recommend':
@@ -168,19 +167,19 @@ elif st.session_state.page == 'recommend':
 
     course_type = st.selectbox("추천받고 싶은 수업 종류를 선택하세요:", ["교양", "전공"])
 
-    # 수업 이름 입력
+    # 수업명 입력
     sub_name = st.text_input(f"이전에 수강했던 {course_type} 수업명을 입력하세요:")
 
     # 교수님 이름 입력
     professor_name = st.text_input("교수님 이름을 입력하세요:")
 
-    # 추천
+    # 추천받기
     if st.button("추천받기"):
-        if not professor_name:  # 교수님 이름이 입력되지 않은 경우
+        if not professor_name:  
             st.warning("교수님 이름을 입력해 주세요.")
         elif sub_name:
             filtered_df = one_hot_df[one_hot_df['Title1'] == course_type]
-            is_major = (course_type == "전공")  # 전공인지 교양인지에 따라 유사도 기준 설정
+            is_major = (course_type == "전공")  # 전공/교양 유사도
 
             similar_subject = find_similar_subject(sub_name, professor_name, filtered_df, is_major)
 
