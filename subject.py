@@ -78,22 +78,22 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
     similar_scores = []
 
     # 입력된 수업명과 교수로 벡터 찾기
-for index, row in one_hot_df.iterrows():
-    if subject_name in row['Name'] and professor_name in row['Pro']:
-        sub_vector = row[11:].values.reshape(1, -1)  # 원-핫 벡터
-        input_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
-        break
+    for index, row in one_hot_df.iterrows():
+        if subject_name in row['Name'] and professor_name in row['Pro']:
+            sub_vector = row[11:].values.reshape(1, -1)  # 원-핫 벡터
+            input_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
+            break
 
-if sub_vector is None:
-    return None  # 입력된 수업의 벡터를 찾지 못한 경우
+    if sub_vector is None:
+        return None  # 입력된 수업의 벡터를 찾지 못한 경우
 
-# 입력된 교수의 수업 제외하고 유사도 계산
-for index, row in one_hot_df.iterrows():
-    if row['Pro'] != professor_name:
-        vector = row[11:].values.reshape(1, -1)
-        name_similarity = cosine_similarity(sub_vector, vector)[0][0]  # 원-핫 벡터 유사도
-        target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
-        tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
+    # 입력된 교수의 수업 제외하고 유사도 계산
+    for index, row in one_hot_df.iterrows():
+        if row['Pro'] != professor_name:
+            vector = row[11:].values.reshape(1, -1)
+            name_similarity = cosine_similarity(sub_vector, vector)[0][0]  # 원-핫 벡터 유사도
+            target_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
+            tag_similarity = calculate_tag_similarity(input_tag, target_tag)  # 태그 유사도 계산
 
         # 최종 유사도: 가중치를 조정
         final_similarity = 0.2 * name_similarity + 0.8 * tag_similarity
