@@ -143,11 +143,13 @@ if st.session_state.page == 'login':
             st.session_state.page = 'credits' 
             st.success("로그인 성공!")
         else:
-            st.error("로그인 실패! 사용자 이름 또는 비밀번호를 확인하세요.")
+            st.error("로그인 실패! 학번 또는 비밀번호를 확인하세요.")
 
 # 이수 학점 입력 페이지
 elif st.session_state.page == 'credits':
     st.subheader("이수한 학점 입력")
+    st.caption("현재까지 이수한 학점을 입력해주세요.")
+
     st.session_state.credits['교양'] = st.number_input("이수한 교양 학점:", min_value=0, value=st.session_state.credits['교양'])
     st.session_state.credits['전공'] = st.number_input("이수한 전공 학점:", min_value=0, value=st.session_state.credits['전공'])
 
@@ -184,7 +186,7 @@ elif st.session_state.page == 'recommend':
             similar_subject = find_similar_subject(sub_name, professor_name, filtered_df, is_major)
 
             if similar_subject:
-                st.write(f"**{professor_name}교수님의 {sub_name} 수업과 비슷한 {course_type} 수업**:")
+                st.write(f"**{professor_name} 교수님의 {sub_name} 수업과 비슷한 {course_type} 수업**:")
                 for code, title1, title, name, des, pro, time, course, credit, score in similar_subject:
                     st.markdown(
                         f"""
