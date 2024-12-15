@@ -80,7 +80,6 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
 
     # 입력된 수업명과 교수로 벡터 찾기
     for index, row in one_hot_df.iterrows():
-        course_name = row['Name'].replace(" ", "")
         if subject_name in row['Name'] and professor_name in row['Pro']:
             sub_vector = row[11:].values.reshape(1, -1)  
             input_tag = f"{row['Tag']},{row['Tag2']}" 
