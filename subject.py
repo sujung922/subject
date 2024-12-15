@@ -114,7 +114,7 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
         if name not in seen_names:
             unique_similar_scores.append((code, title1, title, name, des, pro, time, course, credit, score))
             seen_names.add(name)
-        if len(unique_similar_scores) >= 3:  # 최대 3개 추천
+        if len(unique_similar_scores) >= 5:  # 최대 3개 추천
             break
 
     return unique_similar_scores
