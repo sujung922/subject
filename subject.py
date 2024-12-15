@@ -77,8 +77,11 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
     input_tag = ""
     similar_scores = []
 
+    subject_name = subject_name.replace(" ", "")  # 입력된 수업명에서 공백 제거
+
     # 입력된 수업명과 교수로 벡터 찾기
     for index, row in one_hot_df.iterrows():
+        course_name = row['Name'].replace(" ", "")
         if subject_name in row['Name'] and professor_name in row['Pro']:
             sub_vector = row[11:].values.reshape(1, -1)  # 원-핫 벡터
             input_tag = f"{row['Tag']},{row['Tag2']}"  # 태그 병합
@@ -119,7 +122,8 @@ def find_similar_subject(subject_name, professor_name, one_hot_df, is_major=True
 
     return unique_similar_scores
 
-# Streamlit
+#Streamlit
+
 st.header("에듀매치가 수업을 추천해드릴게요!")
 st.caption('자신이 수강했던 수업 중 가장 재미있게 들었던 수업을 입력해주세요. 에듀매치가 가장 비슷한 유형의 수업을 추천해드릴게요🤓')
 
@@ -183,21 +187,30 @@ elif st.session_state.page == 'recommend':
             if similar_subject:
                 st.write(f"**{sub_name}와 비슷한 {course_type} 수업**:")
                 for code, title1, title, name, des, pro, time, course, credit, score in similar_subject:
-                    with st.container():
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown(f"**코드:** {code}")
-                            st.markdown(f"**전공/교양:** {title1}")
-                            st.markdown(f"**영역:** {title}")
-                            st.markdown(f"**수업명:** {name}")
-                            st.markdown(f"**교수명:** {pro}")
-                        with col2:
-                            st.markdown(f"**요일:** {time}")
-                            st.markdown(f"**학점:** {course}")
-                            st.markdown(f"**평점:** {credit}")
-                            st.markdown(f"**유사도:** {score * 100:.1f}%")
-                        st.markdown(f"**수업설명:** {des}\n")
-                        st.write('=' * 80)
+                    st.markdown(
+                        f"""
+                        <div style="border: 1px solid #ccc; border-radius: 5px; padding: 23px; margin: 15px 15px;">
+                            <h4>{name} ({code})</h4>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <p><strong>전공/교양:</strong> {title1}</p>
+                                <p><strong>영역:</strong> {title}</p>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <p><strong>요일:</strong> {time}</p>
+                                <p><strong>학점:</strong> {course}</p>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <p><strong>평점:</strong> {credit}</p>
+                                <p><strong>유사도:</strong> {score * 100:.1f}%</p>
+                            </div>
+                            <div style="display: flex; justify-content: flex-start; align-items: center;">
+                                <p><strong>교수명:</strong> {pro}</p>
+                            </div>
+                            <p><strong>수업설명:</strong> {des}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
             else:
                 st.write(f"{sub_name}와 비슷한 {course_type} 수업을 찾을 수 없어요🥲.")
         else:
