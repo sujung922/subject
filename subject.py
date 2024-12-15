@@ -98,11 +98,11 @@ for index, row in one_hot_df.iterrows():
         # 최종 유사도: 가중치를 조정
         final_similarity = 0.2 * name_similarity + 0.8 * tag_similarity
 
-            # 전공/교양에 따라 필터링
-            if is_major and final_similarity >= 0.75:  # 전공 유사도 기준
-                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
-            elif not is_major and final_similarity >= 0.75:  # 교양 유사도 기준
-                similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
+        # 전공/교양에 따라 필터링
+        if is_major and final_similarity >= 0.75:  # 전공 유사도 기준
+            similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
+        elif not is_major and final_similarity >= 0.75:  # 교양 유사도 기준
+            similar_scores.append((row['Code'], row['Title1'], row['Title'], row['Name'], row['Des'], row['Pro'], row['Time'], row['Course'], row['Credit'], final_similarity))
 
     # 유사도 기준으로 정렬
     similar_scores.sort(key=lambda x: x[9], reverse=True)
